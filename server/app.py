@@ -82,7 +82,7 @@ class ShowUser(Resource):
         try:
             db.session.delete(user)
             db.session.commit()
-            return {"message": "User deleted successfully"}, 200
+            return {"message": "User deleted successfully"}, 204
         except Exception as e:
             db.session.rollback()
             return {"message": "Error deleting user", "error": str(e)}, 500
@@ -151,7 +151,7 @@ class ShowEventBookmark(Resource):
             db.session.rollback()
             return {"message": "Error updating event bookmark", "error": str(e)}, 500
     
-    
+
     def delete(self, id):
         eventbookmark = EventBookmark.query.get(id)
         if not eventbookmark:
@@ -173,9 +173,117 @@ class ShowPayments(Resource):
     def get(self):
         payments = [payment.to_dict() for payment in Payment.query.all()]
         return make_response(payments, 200)
-    
+
+    def post(self):
+        data = request.get_json()
+        if not data or not data.get('amount') or not data.get('status') or not data.get('user_id'):
+            return {"message": "Missing required fields (amount, status, user_id)"}, 400
+
+        user = User.query.get(data['user_id'])
+        if not user:
+            return {"message": "User not found"}, 404
+
+        event_id = data.get('event_id')
+        if event_id:
+            event = Event.query.get(event_id)
+            if not event:
+                return {"message": "Event not found"}, 404
+
+        ticket_id = data.get('ticket_id')
+        if ticket_id:
+            ticket = Ticket.query.get(ticket_id)
+            if not ticket:
+                return {"message": "Ticket not found"}, 404
+
+        new_payment = Payment(
+            amount=data['amount'],
+            status=data['status'],
+            user_id=data['user_id'],
+            event_id=event_id,
+            ticket_id=ticket_id
+        )
+
+        try:
+            db.session.add(new_payment)
+            db.session.commit()
+            return {"message": "Payment created successfully", "payment": {
+                "id": new_payment.id,
+                "amount": new_payment.amount,
+                "status": new_payment.status,
+                "created_at": new_payment.created_at.isoformat(),
+                "updated_at": new_payment.updated_at.isoformat() if new_payment.updated_at else None,
+                "user_id": new_payment.user_id,
+                "event_id": new_payment.event_id,
+                "ticket_id": new_payment.ticket_id
+            }}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Error creating payment", "error": str(e)}, 500
+
 api.add_resource(ShowPayments, '/payments')
 
+
+class ShowPayment(Resource):
+    def get(self, id):
+        payment = Payment.query.filter(Payment.id==id).first()
+        if not payment:
+            return {"message": "Payment not found"}, 404
+        return payment.to_dict(), 200
+
+
+    def patch(self, id):
+        payment = Payment.query.get(id)
+        if not payment:
+            return {"message": "Payment not found"}, 404
+
+        data = request.get_json()
+        if not data:
+            return {"message": "No input data provided"}, 400
+
+        # Update payment fields
+        if 'amount' in data:
+            payment.amount = data['amount']
+        if 'status' in data:
+            payment.status = data['status']
+        if 'user_id' in data:
+            payment.user_id = data['user_id']
+        if 'event_id' in data:
+            payment.event_id = data['event_id']
+        if 'ticket_id' in data:
+            payment.ticket_id = data['ticket_id']
+
+        try:
+            db.session.commit()
+            return {"message": "Payment updated successfully", "payment": {
+                "id": payment.id,
+                "amount": payment.amount,
+                "status": payment.status,
+                "created_at": payment.created_at.isoformat(),
+                "updated_at": payment.updated_at.isoformat() if payment.updated_at else None,
+                "user_id": payment.user_id,
+                "event_id": payment.event_id,
+                "ticket_id": payment.ticket_id
+            }}
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Error updating payment", "error": str(e)}, 500
+
+
+    def delete(self, id):
+        payment = Payment.query.filter_by(id=id).first()
+        if not payment:
+            return {"message": "Payment not found"}, 404
+
+        try:
+            db.session.delete(payment)
+            db.session.commit()
+            return {"message": "Payment deleted successfully"}, 204
+        
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Error deleting payment", "error": str(e)}, 500
+
+api.add_resource(ShowPayment, '/payments/<int:id>')
 
 
 class ShowTickets(Resource):
