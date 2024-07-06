@@ -30,7 +30,7 @@ class ShowUsers(Resource):
         data = request.get_json()
 
         if not data or not data.get('username') or not data.get('email'):
-            return {"message": "Missing required fields (username and email)"}, 400
+            return {"message": "Required (username and email)"}, 400
 
         existing_user = User.query.filter_by(email=data['email']).first()
         if existing_user:
@@ -56,7 +56,7 @@ class ShowUser(Resource):
         user = User.query.filter(User.id == id).first()
         if not user:
             return {"message": "User not found"}, 404
-        return user.to_dict()
+        return user.to_dict(), 200
 
     def patch(self, id):
         user = User.query.filter_by(id=id).first()
@@ -97,7 +97,75 @@ class ShowEventBookmarks(Resource):
         eventbookmarks = [eventbookmark.to_dict() for eventbookmark in EventBookmark.query.all()]
         return make_response(eventbookmarks, 200)
     
+
+    def post(self):
+        data = request.get_json()
+        if not data or not data.get('user_id') or not data.get('event_id'):
+            return {"message": "Required (user_id and event_id)"}, 400
+
+        user = User.query.get(data['user_id'])
+        if not user:
+            return {"message": "User not found"}, 404
+
+        event = Event.query.get(data['event_id'])
+        if not event:
+            return {"message": "Event not found"}, 404
+
+        new_eventbookmark = EventBookmark(user_id=data['user_id'], event_id=data['event_id'])
+        try:
+            db.session.add(new_eventbookmark)
+            db.session.commit()
+            return {"message": "EventBookmark created Successfully", "eventbookmark": new_eventbookmark.to_dict()}, 201
+        except Exception as exc:
+            db.session.rollback()
+            return {"message": "Error creating event bookmark", "error": str(exc)}, 500    
+    
 api.add_resource(ShowEventBookmarks, '/eventbookmarks')
+
+
+
+class ShowEventBookmark(Resource):
+    def get(self, id):
+        eventbookmark = EventBookmark.query.filter(User.id==id).first()
+        if not eventbookmark:
+            return {"message": "EventBookmark not found"}, 404
+        return eventbookmark.to_dict(), 200
+    
+
+    def patch(self, id):
+        data = request.get_json()
+
+        eventbookmark = EventBookmark.query.filter(User.id==id).first()
+        if not eventbookmark:
+            return {"message": "Event bookmark not found"}, 404
+
+        if 'user_id' in data:
+            eventbookmark.user_id = data['user_id']
+        if 'event_id' in data:
+            eventbookmark.event_id = data['event_id']
+        
+        try:
+            db.session.commit()
+            return eventbookmark.to_dict(), 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Error updating event bookmark", "error": str(e)}, 500
+    
+    
+    def delete(self, id):
+        eventbookmark = EventBookmark.query.get(id)
+        if not eventbookmark:
+            return {"message": "Event bookmark not found"}, 404
+        
+        try:
+            db.session.delete(eventbookmark)
+            db.session.commit()
+            return {"message": "Event bookmark deleted successfully"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Error deleting event bookmark", "error": str(e)}, 500
+
+api.add_resource(ShowEventBookmark, '/eventbookmarks/<int:id>')
 
 
 
