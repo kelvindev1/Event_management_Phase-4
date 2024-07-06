@@ -16,8 +16,8 @@ db = SQLAlchemy(metadata=metadata)
 # event bookmark belongs to one user, event.
 class EventBookmark(db.Model, SerializerMixin):
     __tablename__ = 'eventbookmarks'
+
     serialize_rules = ('-user.eventbookmarks', '-event.eventbookmarks', 'id', 'user_id', 'event_id')
-    # serialize_only = ('id', 'user_id', 'event_id')
 
     # eventbookmarks = association_proxy('event', 'event_bookmarks')
 
@@ -34,7 +34,7 @@ class EventBookmark(db.Model, SerializerMixin):
 class Payment(db.Model, SerializerMixin):
     __tablename__ = 'payments'
 
-    serialize_only = ('id', 'amount', 'status', 'created_at', 'updated_at', 'user_id', 'event_id', 'ticket_id')
+    serialize_rules = ('-user.payments', '-ticket.payments', '-event.payments')
 
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float)
@@ -56,8 +56,8 @@ class Payment(db.Model, SerializerMixin):
 # ticket can have multiple payments.
 class Ticket(db.Model, SerializerMixin):
     __tablename__ = 'tickets'
-
-    serialize_only = ('id', 'ticket_type', 'price', 'status', 'event_id')
+    
+    serialize_rules = ('-event.tickets', '-payments.ticket')
 
     id = db.Column(db.Integer, primary_key=True)
     ticket_type = db.Column(db.String)
@@ -101,9 +101,8 @@ class Event(db.Model, SerializerMixin):
 # user can bookmark multiple events.
 class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
+
     serialize_rules = ('-payments.user', '-eventbookmarks.user', '-events.organizer')
-    
-    # serialize_only = ('id', 'username', 'email', '_password_hash', 'created_at', 'updated_at')
 
     # event_bookmarks =association_proxy('eventbookmarks', 'event')
 

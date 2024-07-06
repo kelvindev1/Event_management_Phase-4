@@ -60,7 +60,7 @@ api.add_resource(ShowTickets, '/tickets')
 class ShowEvents(Resource):
     def get(self):
         events = [event.to_dict() for event in Event.query.all()]
-        return make_response(events, '/events')
+        return make_response(events, 200)
     
 api.add_resource(ShowEvents, '/events')
 
