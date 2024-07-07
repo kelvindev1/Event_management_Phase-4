@@ -52,7 +52,7 @@ class Payment(db.Model, SerializerMixin):
 
 
 
-# ticket belongs to one event.
+# ticket belongs to one event.cd
 # ticket can have multiple payments.
 class Ticket(db.Model, SerializerMixin):
     __tablename__ = 'tickets'
@@ -109,7 +109,7 @@ class User(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String)
     email = db.Column(db.String, unique=True, nullable=False)
-    _password_hash = db.Column(db.String)
+    password = db.Column(db.String)
     # role = db.column(db.String)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now())

@@ -1,7 +1,10 @@
-from models import db, User, Event, Ticket, Payment, EventBookmark
+# from models import db, User, Event, Ticket, Payment, EventBookmark
+from models import db, EventBookmark, Payment, Ticket, Event, User
 from flask_migrate import Migrate
 from flask import Flask, jsonify, request, make_response
 from flask_restful import Api, Resource
+from auth import jwt, auth_bp, bcrypt
+from flask_jwt_extended import jwt_required
 
 app = Flask(__name__)
 
@@ -11,8 +14,14 @@ app.json.compact = False
 
 migrate = Migrate(app, db)
 
+app.config['SECRET_KEY'] = 'bfd44160eee50045cba10da003f8267b'
+
+app.register_blueprint(auth_bp)
 db.init_app(app)
+jwt.init_app(app)
+bcrypt.init_app(app)
 api=Api(app)
+
 
 
 @app.route('/')
@@ -21,6 +30,7 @@ def index():
 
 
 class ShowUsers(Resource):
+    @jwt_required()
     def get(self):
         users = [user.to_dict() for user in User.query.all()]
         return make_response(users, 200)
@@ -82,7 +92,7 @@ class ShowUser(Resource):
         try:
             db.session.delete(user)
             db.session.commit()
-            return {"message": "User deleted successfully"}, 204
+            return {}, 204
         except Exception as e:
             db.session.rollback()
             return {"message": "Error deleting user", "error": str(e)}, 500
@@ -153,14 +163,14 @@ class ShowEventBookmark(Resource):
     
 
     def delete(self, id):
-        eventbookmark = EventBookmark.query.get(id)
+        eventbookmark = EventBookmark.query.filter_by(id=id).first()
         if not eventbookmark:
             return {"message": "Event bookmark not found"}, 404
         
         try:
             db.session.delete(eventbookmark)
             db.session.commit()
-            return {"message": "Event bookmark deleted successfully"}, 200
+            return {}, 204
         except Exception as e:
             db.session.rollback()
             return {"message": "Error deleting event bookmark", "error": str(e)}, 500
@@ -277,7 +287,7 @@ class ShowPayment(Resource):
         try:
             db.session.delete(payment)
             db.session.commit()
-            return {"message": "Payment deleted successfully"}, 204
+            return {}, 204
         
         except Exception as e:
             db.session.rollback()
