@@ -35,7 +35,7 @@ with app.app_context():
 
     print("Creating Events...")
     events = []
-    for _ in range(10):
+    for _ in range(11):
         event = Event(
             title=fake.sentence(),
             description=fake.paragraph(),

@@ -7,7 +7,7 @@ from flask_restful import Api, Resource
 from auth import jwt, auth_bp, bcrypt, allow
 from flask_jwt_extended import jwt_required, current_user
 from flask_cors import CORS
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 
 app = Flask(__name__)
@@ -317,7 +317,81 @@ class ShowEvents(Resource):
         events = [event.to_dict() for event in Event.query.all()]
         return make_response(events, 200)
     
+    def post(self):
+        data = request.get_json()
+
+        try:
+            # Parse date_time string to datetime object
+            date_time = datetime.strptime(data.get('date_time'), '%Y-%m-%d %H:%M:%S')
+
+            new_event = Event(
+                title=data.get('title'),
+                description=data.get('description'),
+                location=data.get('location'),
+                date_time=date_time,  # Assign parsed datetime object
+                organizer_id=data.get('organizer_id')
+            )
+
+            db.session.add(new_event)
+            db.session.commit()
+            return make_response(jsonify(new_event.to_dict()), 201)
+        except ValueError as e:
+            db.session.rollback()
+            return make_response(jsonify({"message": "Error parsing date_time", "error": str(e)}), 400)
+        except Exception as e:
+            db.session.rollback()
+            return make_response(jsonify({"message": "Error creating event", "error": str(e)}), 500)
+    
 api.add_resource(ShowEvents, '/events')
+
+class ShowEvent(Resource):
+    def get(self, id):
+        event = Event.query.filter(Event.id == id).first()
+        if not event:
+            return {"message": "Event not found"}, 404
+        return event.to_dict(), 200
+
+    def patch(self, id):
+        event = Event.query.filter_by(id=id).first()
+        if not event:
+            return make_response(jsonify({"message": "Event not found"}), 404)
+
+        data = request.get_json()
+
+        if 'title' in data:
+            event.title = data['title']
+        if 'description' in data:
+            event.description = data['description']
+        if 'location' in data:
+            event.location = data['location']
+        if 'date_time' in data:
+            try:
+                event.date_time = datetime.strptime(data['date_time'], '%Y-%m-%d %H:%M:%S')
+            except ValueError as e:
+                return make_response(jsonify({"message": "Error parsing date_time", "error": str(e)}), 400)
+        if 'organizer_id' in data:
+            event.organizer_id = data['organizer_id']
+
+        try:
+            db.session.commit()
+            return make_response(jsonify(event.to_dict()), 200)
+        except Exception as e:
+            db.session.rollback()
+            return make_response(jsonify({"message": "Error updating event", "error": str(e)}), 500)
+
+    def delete(self, id):
+        event = Event.query.filter_by(id=id).first()
+        if not event:
+            return {"message": "Event not found"}, 404
+        try:
+            db.session.delete(event)
+            db.session.commit()
+            return {}, 204
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Error deleting Event", "error": str(e)}, 500
+
+api.add_resource(ShowEvent, '/events/<int:id>')
 
 
 
