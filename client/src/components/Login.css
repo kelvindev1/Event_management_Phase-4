@@ -1,0 +1,46 @@
+/* Login form container */
+.login-container {
+    width: 300px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+/* Form labels */
+.login-container label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* Form inputs */
+.login-container input[type="email"],
+.login-container input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+/* Error messages */
+.login-container .error-message {
+    color: red;
+    margin-top: -10px;
+    margin-bottom: 10px;
+}
+
+/* Submit button */
+.login-container button[type="submit"] {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.login-container button[type="submit"]:hover {
+    background-color: #45a049;
+}

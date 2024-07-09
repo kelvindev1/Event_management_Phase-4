@@ -1,8 +1,12 @@
 import React from "react";
 import { useFormik } from "formik";
 import * as yup from "yup";
+import { useNavigate } from "react-router-dom";
+import "./Login.css";
 
 function Login() {
+  const navigate = useNavigate();
+
   const formSchema = yup.object().shape({
     email: yup.string().email("Invalid email").required("Must enter email"),
     password: yup.string().required("Must enter a password")
@@ -22,26 +26,27 @@ function Login() {
         },
         body: JSON.stringify(values),
       })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.token) {
-          // Save token and refresh token (consider using localStorage or cookies)
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('refresh_token', data.refresh_token);
-          alert("Login successful!");
-        } else {
-          alert(data.msg);
-        }
-      })
-      .catch((error) => {
-        console.error("Error during login:", error);
-      });
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.token) {
+            // Save token and refresh token (consider using localStorage or cookies)
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('refresh_token', data.refresh_token);
+            alert("Login successful!");
+            navigate('/home');
+          } else {
+            alert(data.msg);
+          }
+        })
+        .catch((error) => {
+          console.error("Error during login:", error);
+        });
     },
   });
 
   return (
-    <div>
-      <form onSubmit={formik.handleSubmit} style={{ margin: "30px" }}>
+    <div className="login-container"> {/* Apply CSS class to container */}
+      <form onSubmit={formik.handleSubmit}>
         <label htmlFor="email">Email Address</label>
         <br />
         <input
@@ -51,8 +56,10 @@ function Login() {
           onChange={formik.handleChange}
           value={formik.values.email}
         />
-        <p style={{ color: "red" }}>{formik.errors.email}</p>
-        
+        {formik.touched.email && formik.errors.email ? (
+          <p className="error-message">{formik.errors.email}</p>
+        ) : null}
+
         <label htmlFor="password">Password</label>
         <br />
         <input
@@ -62,8 +69,10 @@ function Login() {
           onChange={formik.handleChange}
           value={formik.values.password}
         />
-        <p style={{ color: "red" }}>{formik.errors.password}</p>
-        
+        {formik.touched.password && formik.errors.password ? (
+          <p className="error-message">{formik.errors.password}</p>
+        ) : null}
+
         <button type="submit">Login</button>
       </form>
     </div>

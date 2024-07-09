@@ -1,8 +1,12 @@
 import React from "react";
 import { useFormik } from "formik";
 import * as yup from "yup";
+import { useNavigate } from "react-router-dom";
+import "./Signup.css";
 
 function Signup() {
+  const navigate = useNavigate();
+
   const formSchema = yup.object().shape({
     username: yup.string().required("Must enter a username"),
     email: yup.string().email("Invalid email").required("Must enter email"),
@@ -30,6 +34,7 @@ function Signup() {
       .then((data) => {
         if (data.msg === "User registration Successful") {
           alert("Registration successful!");
+          navigate('/home');
         } else {
           alert(data.msg);
         }
@@ -41,8 +46,8 @@ function Signup() {
   });
 
   return (
-    <div>
-      <form onSubmit={formik.handleSubmit} style={{ margin: "30px" }}>
+    <div className="signup-container">
+      <form onSubmit={formik.handleSubmit}>
         <label htmlFor="username">Username</label>
         <br />
         <input
@@ -52,7 +57,9 @@ function Signup() {
           onChange={formik.handleChange}
           value={formik.values.username}
         />
-        <p style={{ color: "red" }}>{formik.errors.username}</p>
+        {formik.touched.username && formik.errors.username ? (
+          <p className="error-message">{formik.errors.username}</p>
+        ) : null}
 
         <label htmlFor="email">Email Address</label>
         <br />
@@ -63,7 +70,9 @@ function Signup() {
           onChange={formik.handleChange}
           value={formik.values.email}
         />
-        <p style={{ color: "red" }}>{formik.errors.email}</p>
+        {formik.touched.email && formik.errors.email ? (
+          <p className="error-message">{formik.errors.email}</p>
+        ) : null}
         
         <label htmlFor="password">Password</label>
         <br />
@@ -74,7 +83,9 @@ function Signup() {
           onChange={formik.handleChange}
           value={formik.values.password}
         />
-        <p style={{ color: "red" }}>{formik.errors.password}</p>
+        {formik.touched.password && formik.errors.password ? (
+          <p className="error-message">{formik.errors.password}</p>
+        ) : null}
         
         <label htmlFor="password2">Confirm Password</label>
         <br />
@@ -85,7 +96,9 @@ function Signup() {
           onChange={formik.handleChange}
           value={formik.values.password2}
         />
-        <p style={{ color: "red" }}>{formik.errors.password2}</p>
+        {formik.touched.password2 && formik.errors.password2 ? (
+          <p className="error-message">{formik.errors.password2}</p>
+        ) : null}
         
         <button type="submit">Submit</button>
       </form>
