@@ -111,9 +111,9 @@ class User(db.Model, SerializerMixin):
 
     # event_bookmarks =association_proxy('eventbookmarks', 'event')
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String)
+    username = db.Column(db.String, unique = True, nullable=False)
     email = db.Column(db.String, unique=True, nullable=False)
-    password = db.Column(db.String)
+    password = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now())
 
@@ -123,11 +123,14 @@ class User(db.Model, SerializerMixin):
     eventbookmarks = db.relationship('EventBookmark', back_populates='user', lazy=True, cascade='all, delete-orphan')
 
 
+
 class Role(db.Model):
     __tablename__ = 'role'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True, nullable=False)
     users = db.relationship('User', back_populates='roles', secondary=user_roles)
+
+
 
 class TokenBlocklist(db.Model):
     __tablename__ = 'token_blocklist'

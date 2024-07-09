@@ -1,22 +1,27 @@
 # from models import db, User, Event, Ticket, Payment, EventBookmark
 from models import db, EventBookmark, Payment, Ticket, Event, User, Role, TokenBlocklist
+
 from flask_migrate import Migrate
 from flask import Flask, jsonify, request, make_response
 from flask_restful import Api, Resource
-from auth import jwt, auth_bp, bcrypt
+from auth import jwt, auth_bp, bcrypt, allow
 from flask_jwt_extended import jwt_required, current_user
 from flask_cors import CORS
+from datetime import timedelta
+
 
 app = Flask(__name__)
 CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'bfd44160eee50045cba10da003f8267b'
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=10)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=15)
 app.json.compact = False
 
 migrate = Migrate(app, db)
 
-app.config['SECRET_KEY'] = 'bfd44160eee50045cba10da003f8267b'
 
 app.register_blueprint(auth_bp)
 db.init_app(app)

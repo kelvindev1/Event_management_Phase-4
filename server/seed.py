@@ -19,7 +19,7 @@ with app.app_context():
 
     print("Creating Users...")
     users = []
-    for _ in range(100):
+    for _ in range(3):
         username = fake.first_name()
         while User.query.filter_by(username=username).first() is not None:
             username = fake.first_name()
@@ -35,7 +35,7 @@ with app.app_context():
 
     print("Creating Events...")
     events = []
-    for _ in range(50):
+    for _ in range(10):
         event = Event(
             title=fake.sentence(),
             description=fake.paragraph(),
@@ -53,7 +53,7 @@ with app.app_context():
     print("Creating tickets...")
     tickets = []
     for event in events:
-        for _ in range(randint(1, 10)):
+        for _ in range(randint(1, 3)):
             ticket = Ticket(
                 ticket_type=fake.word(),
                 price=fake.random_number(digits=2),
@@ -69,7 +69,7 @@ with app.app_context():
 
     print("Creating payments...")
     payments = []
-    for _ in range(200):
+    for _ in range(3):
         payment = Payment(
             amount=fake.random_number(digits=3),
             status=rc(['Success', 'Pending', 'Failed']),
@@ -87,7 +87,7 @@ with app.app_context():
     print("Creating event bookmarks...")
     event_bookmarks = []
     for user in users:
-        for _ in range(randint(1, 5)):
+        for _ in range(randint(1, 3)):
             event_bookmark = EventBookmark(
                 user_id=user.id,
                 event_id=fake.random_element(elements=Event.query.all()).id

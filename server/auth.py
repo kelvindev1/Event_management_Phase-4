@@ -42,6 +42,7 @@ def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
 
 # signup
 register_args =reqparse.RequestParser()
+register_args.add_argument('username')
 register_args.add_argument('email')
 register_args.add_argument('password')
 register_args.add_argument('password2')
@@ -52,8 +53,14 @@ class Register(Resource):
         if data.get('password') != data.get('password2'):
             return {"msg": "Passwords don't Match"}
         
+        if User.query.filter_by(username=data.get('username')).first():
+            return {"msg": "Username already exists"}
+        
+        if User.query.filter_by(email=data.get('email')).first():
+            return {"msg": "Email already registered"}
+        
         hashed_password = bcrypt.generate_password_hash(data.get('password'))
-        new_user = User(email=data.get('email'), password = hashed_password)
+        new_user = User(username=data.get('username'), email=data.get('email'), password = hashed_password)
         db.session.add(new_user)
         db.session.commit()
 
