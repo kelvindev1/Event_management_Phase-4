@@ -1,8 +1,10 @@
-from flask_jwt_extended import JWTManager, create_access_token
-from flask_bcrypt import Bcrypt
-from flask import Blueprint
+from flask_jwt_extended import JWTManager, verify_jwt_in_request, get_jwt, create_access_token, current_user, jwt_required, create_refresh_token
+from flask import Blueprint, jsonify
 from flask_restful import Api, Resource, reqparse
-from models import User, db
+from models import User, db, TokenBlocklist
+from flask_bcrypt import Bcrypt
+from datetime import datetime, timezone, timedelta
+from functools import wraps
 
 auth_bp = Blueprint('auth_bp', __name__,url_prefix='/auth')
 bcrypt = Bcrypt()
@@ -10,6 +12,33 @@ bcrypt = Bcrypt()
 auth_api = Api(auth_bp)
 jwt = JWTManager()
 
+
+def allow(*roles):
+    def wrapper(fn):
+        @wraps(fn)
+        def decorator(*args, **kwargs):
+            user = current_user
+            user_roles = [role.name for role in user.roles]
+            for role in roles:
+                if role in user_roles:
+                    return fn(*args, **kwargs)
+                return jsonify(msg='Acess Denied!'), 403
+            return decorator
+        return wrapper
+
+
+
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    identity = jwt_data['sub']
+    return User.query.filter_by(id=identity).first()
+
+
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
+    jti = jwt_payload['jti']
+    token = TokenBlocklist.query.filter_by(jti=jti).first()
+    return token is not None
 
 # signup
 register_args =reqparse.RequestParser()
@@ -49,5 +78,25 @@ class Login(Resource):
             return {"msg": "Incorrect Password"}
         
         token = create_access_token(identity=user.id)
+        refresh_token = create_refresh_token(identity=user.id)
+
+        return {"token": token, "refresh_token": refresh_token}
+    
+    @jwt_required(refresh = True)
+    def get(self):
+        token = create_access_token(identity=current_user.id)
         return {"token": token}
+
 auth_api.add_resource(Login, '/login')
+
+
+class Logout(Resource):
+    @jwt_required()
+    def get(self):
+        jti = get_jwt()["jti"]
+        now = datetime.now(timezone.utc)
+        db.session.add(TokenBlocklist(jti=jti, created_at=now))
+        db.session.commit()
+        return jsonify(msg="JWT revoked")
+
+auth_api.add_resource(Logout,'/logout')

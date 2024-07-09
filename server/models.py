@@ -1,17 +1,22 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy import MetaData
 # from sqlalchemy.orm import validates
 # from sqlalchemy.ext.associationproxy import association_proxy
-from sqlalchemy_serializer import SerializerMixin
 
 
 metadata = MetaData(
     naming_convention={"fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",})
 
+
 db = SQLAlchemy(metadata=metadata)
 
-
-
+user_roles = db.Table(
+    "user_roles",
+    metadata,
+    db.Column("user_id", db.ForeignKey('users.id'), primary_key=True),
+    db.Column("role_id", db.ForeignKey('role.id'), primary_key=True)
+)
 
 # event bookmark belongs to one user, event.
 class EventBookmark(db.Model, SerializerMixin):
@@ -105,17 +110,28 @@ class User(db.Model, SerializerMixin):
     serialize_rules = ('-payments.user', '-eventbookmarks.user', '-events.organizer')
 
     # event_bookmarks =association_proxy('eventbookmarks', 'event')
-
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String)
     email = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String)
-    # role = db.column(db.String)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now())
 
+    roles = db.relationship('Role', back_populates='users', secondary=user_roles)
     events = db.relationship('Event', back_populates='organizer', lazy=True, cascade='all, delete-orphan')
     payments = db.relationship('Payment', back_populates='user', lazy=True, cascade='all, delete-orphan')
     eventbookmarks = db.relationship('EventBookmark', back_populates='user', lazy=True, cascade='all, delete-orphan')
 
+
+class Role(db.Model):
+    __tablename__ = 'role'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, unique=True, nullable=False)
+    users = db.relationship('User', back_populates='roles', secondary=user_roles)
+
+class TokenBlocklist(db.Model):
+    __tablename__ = 'token_blocklist'
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False)
 

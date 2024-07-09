@@ -1,12 +1,14 @@
 # from models import db, User, Event, Ticket, Payment, EventBookmark
-from models import db, EventBookmark, Payment, Ticket, Event, User
+from models import db, EventBookmark, Payment, Ticket, Event, User, Role, TokenBlocklist
 from flask_migrate import Migrate
 from flask import Flask, jsonify, request, make_response
 from flask_restful import Api, Resource
 from auth import jwt, auth_bp, bcrypt
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, current_user
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
