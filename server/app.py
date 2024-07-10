@@ -1,4 +1,3 @@
-# from models import db, User, Event, Ticket, Payment, EventBookmark
 from models import db, EventBookmark, Payment, Ticket, Event, User, Role, TokenBlocklist
 from flask_migrate import Migrate
 from flask import Flask, jsonify, request, make_response
@@ -29,13 +28,12 @@ bcrypt.init_app(app)
 api=Api(app)
 
 
-
 @app.route('/')
 def index():
     return f'Welcome to phase 4 Project'
 
 
-class ShowUsers(Resource):
+class Users(Resource):
     @jwt_required()
     @allow('admin')
     def get(self):
@@ -65,10 +63,10 @@ class ShowUsers(Resource):
             db.session.rollback()
             return {"message": "Error creating user", "error": str(exc)}, 500
 
-api.add_resource(ShowUsers, '/users')
+api.add_resource(Users, '/users')
 
 
-class ShowUser(Resource):
+class UserById(Resource):
     def get(self, id):
         user = User.query.filter(User.id == id).first()
         if not user:
@@ -104,12 +102,14 @@ class ShowUser(Resource):
             db.session.rollback()
             return {"message": "Error deleting user", "error": str(e)}, 500
 
-api.add_resource(ShowUser, '/users/<int:id>')
+api.add_resource(UserById, '/users/<int:id>')
 
 
 
 
-class ShowEventBookmarks(Resource):
+
+
+class EventBookmarks(Resource):
     def get(self):
         eventbookmarks = [eventbookmark.to_dict() for eventbookmark in EventBookmark.query.all()]
         return make_response(eventbookmarks, 200)
@@ -120,11 +120,11 @@ class ShowEventBookmarks(Resource):
         if not data or not data.get('user_id') or not data.get('event_id'):
             return {"message": "Required (user_id and event_id)"}, 400
 
-        user = User.query.get(data['user_id'])
+        user = db.session.get(User, data['user_id'])
         if not user:
             return {"message": "User not found"}, 404
 
-        event = Event.query.get(data['event_id'])
+        event = db.session.get(Event, data['event_id'])
         if not event:
             return {"message": "Event not found"}, 404
 
@@ -135,15 +135,15 @@ class ShowEventBookmarks(Resource):
             return {"message": "EventBookmark created Successfully", "eventbookmark": new_eventbookmark.to_dict()}, 201
         except Exception as exc:
             db.session.rollback()
-            return {"message": "Error creating event bookmark", "error": str(exc)}, 500    
+            return {"message": "Error creating event bookmark", "error": str(exc)}, 500   
     
-api.add_resource(ShowEventBookmarks, '/eventbookmarks')
+api.add_resource(EventBookmarks, '/eventbookmarks')
 
 
 
-class ShowEventBookmark(Resource):
+class EventBookmarkById(Resource):
     def get(self, id):
-        eventbookmark = EventBookmark.query.filter(User.id==id).first()
+        eventbookmark = EventBookmark.query.filter(EventBookmark.id==id).first()
         if not eventbookmark:
             return {"message": "EventBookmark not found"}, 404
         return eventbookmark.to_dict(), 200
@@ -152,7 +152,7 @@ class ShowEventBookmark(Resource):
     def patch(self, id):
         data = request.get_json()
 
-        eventbookmark = EventBookmark.query.filter(User.id==id).first()
+        eventbookmark = EventBookmark.query.filter(EventBookmark.id==id).first()
         if not eventbookmark:
             return {"message": "Event bookmark not found"}, 404
 
@@ -170,7 +170,7 @@ class ShowEventBookmark(Resource):
     
 
     def delete(self, id):
-        eventbookmark = EventBookmark.query.filter_by(id=id).first()
+        eventbookmark = EventBookmark.query.filter(EventBookmark.id==id).first()
         if not eventbookmark:
             return {"message": "Event bookmark not found"}, 404
         
@@ -182,33 +182,35 @@ class ShowEventBookmark(Resource):
             db.session.rollback()
             return {"message": "Error deleting event bookmark", "error": str(e)}, 500
 
-api.add_resource(ShowEventBookmark, '/eventbookmarks/<int:id>')
+api.add_resource(EventBookmarkById, '/eventbookmarks/<int:id>')
 
 
 
-class ShowPayments(Resource):
+
+
+class Payments(Resource):
     def get(self):
         payments = [payment.to_dict() for payment in Payment.query.all()]
-        return make_response(payments, 200)
+        return make_response(jsonify(payments), 200)
 
     def post(self):
         data = request.get_json()
-        if not data or not data.get('amount') or not data.get('status') or not data.get('user_id'):
-            return {"message": "Missing required fields (amount, status, user_id)"}, 400
+        if not data or not data.get('amount') or not data.get('status') or not data.get('user_id') or not data.get('event_id') or not data.get('ticket_id'):
+            return {"message": "Required (amount, status, user_id, event_id, ticket_id)"}, 400
 
-        user = User.query.get(data['user_id'])
+        user = db.session.get(User, data['user_id'])
         if not user:
             return {"message": "User not found"}, 404
 
         event_id = data.get('event_id')
         if event_id:
-            event = Event.query.get(event_id)
+            event = db.session.get(Event, event_id)
             if not event:
                 return {"message": "Event not found"}, 404
 
         ticket_id = data.get('ticket_id')
         if ticket_id:
-            ticket = Ticket.query.get(ticket_id)
+            ticket = db.session.get(Ticket, ticket_id)
             if not ticket:
                 return {"message": "Ticket not found"}, 404
 
@@ -233,14 +235,14 @@ class ShowPayments(Resource):
                 "event_id": new_payment.event_id,
                 "ticket_id": new_payment.ticket_id
             }}, 201
-        except Exception as e:
+        except Exception as exc:
             db.session.rollback()
-            return {"message": "Error creating payment", "error": str(e)}, 500
+            return {"message": "Error creating payment", "error": str(exc)}, 500
 
-api.add_resource(ShowPayments, '/payments')
+api.add_resource(Payments, '/payments')
 
 
-class ShowPayment(Resource):
+class PaymentById(Resource):
     def get(self, id):
         payment = Payment.query.filter(Payment.id==id).first()
         if not payment:
@@ -249,7 +251,7 @@ class ShowPayment(Resource):
 
 
     def patch(self, id):
-        payment = Payment.query.get(id)
+        payment = db.session.get(Payment, id)
         if not payment:
             return {"message": "Payment not found"}, 404
 
@@ -257,7 +259,6 @@ class ShowPayment(Resource):
         if not data:
             return {"message": "No input data provided"}, 400
 
-        # Update payment fields
         if 'amount' in data:
             payment.amount = data['amount']
         if 'status' in data:
@@ -281,9 +282,9 @@ class ShowPayment(Resource):
                 "event_id": payment.event_id,
                 "ticket_id": payment.ticket_id
             }}
-        except Exception as e:
+        except Exception as exc:
             db.session.rollback()
-            return {"message": "Error updating payment", "error": str(e)}, 500
+            return {"message": "Error updating payment", "error": str(exc)}, 500
 
 
     def delete(self, id):
@@ -300,19 +301,99 @@ class ShowPayment(Resource):
             db.session.rollback()
             return {"message": "Error deleting payment", "error": str(e)}, 500
 
-api.add_resource(ShowPayment, '/payments/<int:id>')
+api.add_resource(PaymentById, '/payments/<int:id>')
 
 
-class ShowTickets(Resource):
+
+
+
+class Tickets(Resource):
     def get(self):
         tickets = [ticket.to_dict() for ticket in Ticket.query.all()]
         return make_response(tickets, 200)
     
-api.add_resource(ShowTickets, '/tickets')
+
+    def post(self):
+        data = request.get_json()
+        if not data or not data.get('ticket_type') or not data.get('price') or not data.get('status') or not data.get('event_id'):
+            return {"message": "Required (ticket_type, price, status, event_id)"}, 400
+        
+        new_ticket = Ticket(
+            ticket_type=data['ticket_type'],
+            price=data['price'],
+            status=data['status'],
+            event_id=data['event_id']
+        )
+
+        try:
+            db.session.add(new_ticket)
+            db.session.commit()
+            return {"message": "Ticket created successfully", "ticket": new_ticket.to_dict()}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Error creating ticket", "error": str(e)}, 500
+    
+api.add_resource(Tickets, '/tickets')
 
 
 
-class ShowEvents(Resource):
+class TicketById(Resource):
+    def get(self, id):
+        ticket = db.session.get(Ticket, id)
+        if not ticket:
+            return {"message": "Ticket not found"}, 404
+        return ticket.to_dict(), 200
+    
+
+    def patch(self, id):
+        ticket = db.session.get(Ticket, id)
+        if not ticket:
+            return {"message": "Ticket not found"}, 404
+
+        data = request.get_json()
+        if not data:
+            return {"message": "No input data provided"}, 400
+
+        if 'ticket_type' in data:
+            ticket.ticket_type = data['ticket_type']
+        if 'price' in data:
+            ticket.price = data['price']
+        if 'status' in data:
+            ticket.status = data['status']
+        if 'event_id' in data:
+            ticket.event_id = data['event_id']
+
+        try:
+            db.session.commit()
+            return {
+                "message": "Ticket updated successfully",
+                "ticket": ticket.to_dict()
+            }
+        except Exception as e:
+            db.session.rollback()
+            return {"message": "Error updating ticket", "error": str(e)}, 500
+        
+
+    def delete(self, id):
+        ticket = db.session.get(Ticket, id)
+        if not ticket:
+            return {"message": "Ticket not found"}, 404
+
+        try:
+            db.session.delete(ticket)
+            db.session.commit()
+            return {}, 204
+        except Exception as exc:
+            db.session.rollback()
+            return {"message": "Error deleting ticket", "error": str(exc)}, 500
+
+api.add_resource(TicketById, '/tickets/<int:id>')
+
+
+
+
+
+class Events(Resource):
     @jwt_required()
     @allow('admin')
     def get(self):
@@ -321,16 +402,14 @@ class ShowEvents(Resource):
     
     def post(self):
         data = request.get_json()
-
         try:
-            # Parse date_time string to datetime object
             date_time = datetime.strptime(data.get('date_time'), '%Y-%m-%d %H:%M:%S')
 
             new_event = Event(
                 title=data.get('title'),
                 description=data.get('description'),
                 location=data.get('location'),
-                date_time=date_time,  # Assign parsed datetime object
+                date_time=date_time,
                 organizer_id=data.get('organizer_id')
             )
 
@@ -344,9 +423,10 @@ class ShowEvents(Resource):
             db.session.rollback()
             return make_response(jsonify({"message": "Error creating event", "error": str(e)}), 500)
     
-api.add_resource(ShowEvents, '/events')
+api.add_resource(Events, '/events')
 
-class ShowEvent(Resource):
+
+class EventById(Resource):
     def get(self, id):
         event = Event.query.filter(Event.id == id).first()
         if not event:
@@ -369,17 +449,17 @@ class ShowEvent(Resource):
         if 'date_time' in data:
             try:
                 event.date_time = datetime.strptime(data['date_time'], '%Y-%m-%d %H:%M:%S')
-            except ValueError as e:
-                return make_response(jsonify({"message": "Error parsing date_time", "error": str(e)}), 400)
+            except ValueError as exc:
+                return make_response(jsonify({"message": "Error parsing date_time", "error": str(exc)}), 400)
         if 'organizer_id' in data:
             event.organizer_id = data['organizer_id']
 
         try:
             db.session.commit()
             return make_response(jsonify(event.to_dict()), 200)
-        except Exception as e:
+        except Exception as exc:
             db.session.rollback()
-            return make_response(jsonify({"message": "Error updating event", "error": str(e)}), 500)
+            return make_response(jsonify({"message": "Error updating event", "error": str(exc)}), 500)
 
     def delete(self, id):
         event = Event.query.filter_by(id=id).first()
@@ -389,11 +469,11 @@ class ShowEvent(Resource):
             db.session.delete(event)
             db.session.commit()
             return {}, 204
-        except Exception as e:
+        except Exception as exc:
             db.session.rollback()
-            return {"message": "Error deleting Event", "error": str(e)}, 500
+            return {"message": "Error deleting Event", "error": str(exc)}, 500
 
-api.add_resource(ShowEvent, '/events/<int:id>')
+api.add_resource(EventById, '/events/<int:id>')
 
 
 

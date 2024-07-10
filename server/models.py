@@ -15,7 +15,7 @@ user_roles = db.Table(
     "user_roles",
     metadata,
     db.Column("role_id",db.ForeignKey("roles.id")),
-    db.Column("user_id", db.ForeignKey("users.id")),
+    db.Column("user_id", db.ForeignKey("users.id"))
 )
 
 
@@ -24,8 +24,6 @@ class EventBookmark(db.Model, SerializerMixin):
     __tablename__ = 'eventbookmarks'
 
     serialize_rules = ('-user.eventbookmarks', '-event.eventbookmarks', 'id', 'user_id', 'event_id')
-
-    # eventbookmarks = association_proxy('event', 'event_bookmarks')
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
@@ -57,7 +55,6 @@ class Payment(db.Model, SerializerMixin):
 
 
 
-
 # ticket belongs to one event.cd
 # ticket can have multiple payments.
 class Ticket(db.Model, SerializerMixin):
@@ -76,7 +73,6 @@ class Ticket(db.Model, SerializerMixin):
 
 
 
-
 # event belongs to one organizer (user).
 # event can have multiple tickets.
 # event can receive multiple payments.
@@ -84,8 +80,6 @@ class Event(db.Model, SerializerMixin):
     __tablename__ = 'events'
 
     serialize_only = ('id', 'title', 'description', 'location', 'date_time', 'created_at', 'updated_at', 'organizer_id')
-
-    # user_bookmark =association_proxy('eventbookmarks', 'user')
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String)
@@ -102,15 +96,15 @@ class Event(db.Model, SerializerMixin):
     eventbookmarks = db.relationship('EventBookmark', back_populates='event', lazy=True, cascade='all, delete-orphan')
 
 
+
 # user can organize multiple events.
 # user can make multiple payments.
 # user can bookmark multiple events.
 class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
 
-    serialize_rules = ('-payments.user', '-eventbookmarks.user', '-events.organizer')
+    serialize_rules = ('-payments.user', '-eventbookmarks.user', '-events.organizer', '-roles.user')
 
-    # event_bookmarks =association_proxy('eventbookmarks', 'event')
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, unique = True, nullable=False)
     email = db.Column(db.String, unique=True, nullable=False)
@@ -125,8 +119,9 @@ class User(db.Model, SerializerMixin):
 
 
 
-class Role(db.Model):
+class Role(db.Model, SerializerMixin):
     __tablename__ = 'roles'
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True, nullable=False)
     user = db.relationship('User',back_populates='roles', secondary=user_roles)
@@ -141,8 +136,6 @@ class TokenBlocklist(db.Model):
 
 
 
-
-
 # flask shell
 # from models import db, Role
 # role1 = Role(name = 'admin')
@@ -154,12 +147,10 @@ class TokenBlocklist(db.Model):
 # db.session.commit()
 
 
-
 # from models import db, User, Role
 # admin = Role.query.filter_by(name = 'admin').first()
 # admin.name
 # user = User.query.filter_by(username = 'James').first()
 # user.username
-
 # user.roles.append(admin)
 # db.session.commit()
