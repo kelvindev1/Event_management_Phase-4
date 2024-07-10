@@ -1,6 +1,5 @@
 # from models import db, User, Event, Ticket, Payment, EventBookmark
 from models import db, EventBookmark, Payment, Ticket, Event, User, Role, TokenBlocklist
-
 from flask_migrate import Migrate
 from flask import Flask, jsonify, request, make_response
 from flask_restful import Api, Resource
@@ -38,6 +37,7 @@ def index():
 
 class ShowUsers(Resource):
     @jwt_required()
+    @allow('admin')
     def get(self):
         users = [user.to_dict() for user in User.query.all()]
         return make_response(users, 200)
@@ -313,6 +313,8 @@ api.add_resource(ShowTickets, '/tickets')
 
 
 class ShowEvents(Resource):
+    @jwt_required()
+    @allow('admin')
     def get(self):
         events = [event.to_dict() for event in Event.query.all()]
         return make_response(events, 200)

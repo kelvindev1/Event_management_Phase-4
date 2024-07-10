@@ -2,6 +2,7 @@ from random import randint, choice as rc
 from faker import Faker
 from app import app, db
 from models import User, Event, Ticket, Payment, EventBookmark
+from werkzeug.security import generate_password_hash
 
 fake = Faker()
 
@@ -25,7 +26,8 @@ with app.app_context():
             username = fake.first_name()
 
         email = fake.email()
-        user = User(username=username, email=email)
+        password = generate_password_hash("password123")  # Generate a password hash
+        user = User(username=username, email=email, password=password)
         users.append(user)
 
     db.session.add_all(users)
@@ -35,7 +37,7 @@ with app.app_context():
 
     print("Creating Events...")
     events = []
-    for _ in range(11):
+    for _ in range(10):
         event = Event(
             title=fake.sentence(),
             description=fake.paragraph(),

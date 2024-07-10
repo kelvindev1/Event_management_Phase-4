@@ -18,7 +18,7 @@ function Login() {
       password: ""
     },
     validationSchema: formSchema,
-    onSubmit: (values) => {
+    onSubmit: (values, { resetForm }) => {
       fetch("http://127.0.0.1:5555/auth/login", {
         method: "POST",
         headers: {
@@ -29,11 +29,11 @@ function Login() {
         .then((res) => res.json())
         .then((data) => {
           if (data.token) {
-            // Save token and refresh token (consider using localStorage or cookies)
             localStorage.setItem('token', data.token);
             localStorage.setItem('refresh_token', data.refresh_token);
             alert("Login successful!");
             navigate('/home');
+            resetForm();
           } else {
             alert(data.msg);
           }
@@ -45,7 +45,7 @@ function Login() {
   });
 
   return (
-    <div className="login-container"> {/* Apply CSS class to container */}
+    <div className="login-container">
       <form onSubmit={formik.handleSubmit}>
         <label htmlFor="email">Email Address</label>
         <br />

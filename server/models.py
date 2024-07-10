@@ -14,9 +14,10 @@ db = SQLAlchemy(metadata=metadata)
 user_roles = db.Table(
     "user_roles",
     metadata,
-    db.Column("user_id", db.ForeignKey('users.id'), primary_key=True),
-    db.Column("role_id", db.ForeignKey('role.id'), primary_key=True)
+    db.Column("role_id",db.ForeignKey("roles.id")),
+    db.Column("user_id", db.ForeignKey("users.id")),
 )
+
 
 # event bookmark belongs to one user, event.
 class EventBookmark(db.Model, SerializerMixin):
@@ -117,7 +118,7 @@ class User(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now())
 
-    roles = db.relationship('Role', back_populates='users', secondary=user_roles)
+    roles = db.relationship('Role',back_populates='user', secondary=user_roles)
     events = db.relationship('Event', back_populates='organizer', lazy=True, cascade='all, delete-orphan')
     payments = db.relationship('Payment', back_populates='user', lazy=True, cascade='all, delete-orphan')
     eventbookmarks = db.relationship('EventBookmark', back_populates='user', lazy=True, cascade='all, delete-orphan')
@@ -125,10 +126,10 @@ class User(db.Model, SerializerMixin):
 
 
 class Role(db.Model):
-    __tablename__ = 'role'
+    __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True, nullable=False)
-    users = db.relationship('User', back_populates='roles', secondary=user_roles)
+    user = db.relationship('User',back_populates='roles', secondary=user_roles)
 
 
 
@@ -138,3 +139,27 @@ class TokenBlocklist(db.Model):
     jti = db.Column(db.String, nullable=False, index=True)
     created_at = db.Column(db.DateTime, nullable=False)
 
+
+
+
+
+# flask shell
+# from models import db, Role
+# role1 = Role(name = 'admin')
+# db.session.add(role1)
+# role2 = Role(name = 'client')
+# db.session.add(role2)
+# role3= Role(name='Organizer')
+# db.session.add(role3)
+# db.session.commit()
+
+
+
+# from models import db, User, Role
+# admin = Role.query.filter_by(name = 'admin').first()
+# admin.name
+# user = User.query.filter_by(username = 'James').first()
+# user.username
+
+# user.roles.append(admin)
+# db.session.commit()

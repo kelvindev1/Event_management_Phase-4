@@ -22,7 +22,7 @@ function Signup() {
       password2: ""
     },
     validationSchema: formSchema,
-    onSubmit: (values) => {
+    onSubmit: (values, { resetForm }) => {
       fetch("http://127.0.0.1:5555/auth/register", {
         method: "POST",
         headers: {
@@ -35,6 +35,7 @@ function Signup() {
         if (data.msg === "User registration Successful") {
           alert("Registration successful!");
           navigate('/home');
+          resetForm(); // Reset form values
         } else {
           alert(data.msg);
         }

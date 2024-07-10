@@ -14,17 +14,17 @@ jwt = JWTManager()
 
 
 def allow(*roles):
-    def wrapper(fn):
+    def decorator(fn):
         @wraps(fn)
-        def decorator(*args, **kwargs):
+        def wrapper(*args, **kwargs):
             user = current_user
             user_roles = [role.name for role in user.roles]
             for role in roles:
                 if role in user_roles:
                     return fn(*args, **kwargs)
-                return jsonify(msg='Acess Denied!'), 403
-            return decorator
+            return {"msg": 'Acess Denied!'}, 403
         return wrapper
+    return decorator
 
 
 

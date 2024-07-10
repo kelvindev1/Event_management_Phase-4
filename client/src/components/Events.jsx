@@ -9,7 +9,7 @@ function Events() {
     description: '',
     location: '',
     date_time: '',
-    organizer_id: '', // Initialize organizer_id state
+    organizer_id: '',
   });
 
   useEffect(() => {
@@ -17,8 +17,18 @@ function Events() {
   }, []);
 
   const fetchEvents = () => {
-    fetch('http://127.0.0.1:5555/events')
-      .then(response => response.json())
+    const token = localStorage.getItem('token'); // Ensure token is retrieved correctly
+    fetch('http://127.0.0.1:5555/events', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+      .then(response => {
+        if (!response.ok) {
+          console.error('Fetch events failed:', response.statusText);
+        }
+        return response.json();
+      })
       .then(data => {
         setEvents(data);
       })
@@ -28,8 +38,12 @@ function Events() {
   };
 
   const handleDelete = (eventId) => {
+    const token = localStorage.getItem('token');
     fetch(`http://127.0.0.1:5555/events/${eventId}`, {
       method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
     })
       .then(response => {
         if (response.ok) {
@@ -47,10 +61,12 @@ function Events() {
   };
 
   const handleUpdateSubmit = (eventId) => {
+    const token = localStorage.getItem('token');
     fetch(`http://127.0.0.1:5555/events/${eventId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(updatedEvent),
     })
@@ -66,12 +82,14 @@ function Events() {
   };
 
   const handleCreateEvent = () => {
-    const formattedDateTime = new Date(newEventData.date_time).toISOString().slice(0, 19).replace('T', ' '); // Ensure correct datetime format
-
+    const formattedDateTime = new Date(newEventData.date_time).toISOString().slice(0, 19).replace('T', ' ');
+    const token = localStorage.getItem('token');
+    
     fetch('http://127.0.0.1:5555/events', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ ...newEventData, date_time: formattedDateTime }),
     })
