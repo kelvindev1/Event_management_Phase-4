@@ -3,7 +3,8 @@ from flask_migrate import Migrate
 from flask import Flask, jsonify, request, make_response
 from flask_restful import Api, Resource
 from auth import jwt, auth_bp, bcrypt, allow
-from flask_jwt_extended import jwt_required, current_user
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.orm import Session
 from flask_cors import CORS
 from datetime import timedelta, datetime
 
@@ -31,6 +32,17 @@ api=Api(app)
 @app.route('/')
 def index():
     return f'Welcome to phase 4 Project'
+
+
+@app.route('/check_admin', methods=['GET'])
+@jwt_required()
+def check_admin():
+    current_user_id = get_jwt_identity()
+    session = Session(db.engine)
+    user = session.get(User, current_user_id)
+    if user and any(role.name == 'admin' for role in user.roles):
+        return jsonify(is_admin=True), 200
+    return jsonify(is_admin=False), 200
 
 
 class Users(Resource):
@@ -110,11 +122,14 @@ api.add_resource(UserById, '/users/<int:id>')
 
 
 class EventBookmarks(Resource):
+    @jwt_required()
+    @allow('admin', 'user')
     def get(self):
         eventbookmarks = [eventbookmark.to_dict() for eventbookmark in EventBookmark.query.all()]
         return make_response(eventbookmarks, 200)
     
-
+    @jwt_required()
+    @allow('admin')
     def post(self):
         data = request.get_json()
         if not data or not data.get('user_id') or not data.get('event_id'):
@@ -142,13 +157,16 @@ api.add_resource(EventBookmarks, '/eventbookmarks')
 
 
 class EventBookmarkById(Resource):
+    @jwt_required()
+    @allow('admin')
     def get(self, id):
         eventbookmark = EventBookmark.query.filter(EventBookmark.id==id).first()
         if not eventbookmark:
             return {"message": "EventBookmark not found"}, 404
         return eventbookmark.to_dict(), 200
     
-
+    @jwt_required()
+    @allow('admin')
     def patch(self, id):
         data = request.get_json()
 
@@ -168,7 +186,8 @@ class EventBookmarkById(Resource):
             db.session.rollback()
             return {"message": "Error updating event bookmark", "error": str(e)}, 500
     
-
+    @jwt_required()
+    @allow('admin')
     def delete(self, id):
         eventbookmark = EventBookmark.query.filter(EventBookmark.id==id).first()
         if not eventbookmark:
@@ -394,12 +413,12 @@ api.add_resource(TicketById, '/tickets/<int:id>')
 
 
 class Events(Resource):
-    @jwt_required()
-    @allow('admin')
     def get(self):
         events = [event.to_dict() for event in Event.query.all()]
         return make_response(events, 200)
     
+    @jwt_required()
+    @allow('admin')
     def post(self):
         data = request.get_json()
         try:
@@ -427,12 +446,16 @@ api.add_resource(Events, '/events')
 
 
 class EventById(Resource):
+    @jwt_required()
+    @allow('admin')
     def get(self, id):
         event = Event.query.filter(Event.id == id).first()
         if not event:
             return {"message": "Event not found"}, 404
         return event.to_dict(), 200
 
+    @jwt_required()
+    @allow('admin')
     def patch(self, id):
         event = Event.query.filter_by(id=id).first()
         if not event:
@@ -461,6 +484,8 @@ class EventById(Resource):
             db.session.rollback()
             return make_response(jsonify({"message": "Error updating event", "error": str(exc)}), 500)
 
+    @jwt_required()
+    @allow('admin')
     def delete(self, id):
         event = Event.query.filter_by(id=id).first()
         if not event:
@@ -476,6 +501,26 @@ class EventById(Resource):
 api.add_resource(EventById, '/events/<int:id>')
 
 
+
+
+class Roles(Resource):
+    def get(self):
+        roles = [role.to_dict() for role in Role.query.all()]
+        return make_response(roles, 200)
+
+
+api.add_resource(Roles, '/roles')
+
+
+class RoleById(Resource):
+    def get(self, id):
+        role = Role.query.filter(Role.id == id).first()
+        if not role:
+            return {"message": "Role not found"}, 404
+        return role.to_dict(), 200
+
+
+api.add_resource(RoleById, '/roles/<int:id>')
 
 if __name__ == '__main__':
     app.run(port='5555', debug=True)

@@ -11,13 +11,31 @@ function Events() {
     date_time: '',
     organizer_id: '',
   });
+  const [isAdmin, setIsAdmin] = useState(false); // Assume false by default
 
   useEffect(() => {
     fetchEvents();
+    checkAdminStatus(); // Fetch user's admin status
   }, []);
 
+  const checkAdminStatus = () => {
+    const token = localStorage.getItem('token');
+    fetch('http://127.0.0.1:5555/check_admin', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+      .then(response => response.json())
+      .then(data => {
+        setIsAdmin(data.is_admin); // Assuming server returns { is_admin: true/false }
+      })
+      .catch(error => {
+        console.error('Error checking admin status:', error);
+      });
+  };
+
   const fetchEvents = () => {
-    const token = localStorage.getItem('token'); // Ensure token is retrieved correctly
+    const token = localStorage.getItem('token');
     fetch('http://127.0.0.1:5555/events', {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -113,61 +131,69 @@ function Events() {
   return (
     <div>
       <h2>Events</h2>
-      <div>
-        <input
-          type="text"
-          placeholder="Title"
-          value={newEventData.title}
-          onChange={(e) => setNewEventData({ ...newEventData, title: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Description"
-          value={newEventData.description}
-          onChange={(e) => setNewEventData({ ...newEventData, description: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Location"
-          value={newEventData.location}
-          onChange={(e) => setNewEventData({ ...newEventData, location: e.target.value })}
-        />
-        <input
-          type="datetime-local"
-          value={newEventData.date_time}
-          onChange={(e) => setNewEventData({ ...newEventData, date_time: e.target.value })}
-        />
-        <input
-          type="text"
-          placeholder="Organizer ID"
-          value={newEventData.organizer_id}
-          onChange={(e) => setNewEventData({ ...newEventData, organizer_id: e.target.value })}
-        />
-        <button onClick={handleCreateEvent}>Create Event</button>
-      </div>
+      {isAdmin && ( // Only show input fields if user is admin
+        <div>
+          <input
+            type="text"
+            placeholder="Title"
+            value={newEventData.title}
+            onChange={(e) => setNewEventData({ ...newEventData, title: e.target.value })}
+          />
+          <input
+            type="text"
+            placeholder="Description"
+            value={newEventData.description}
+            onChange={(e) => setNewEventData({ ...newEventData, description: e.target.value })}
+          />
+          <input
+            type="text"
+            placeholder="Location"
+            value={newEventData.location}
+            onChange={(e) => setNewEventData({ ...newEventData, location: e.target.value })}
+          />
+          <input
+            type="datetime-local"
+            value={newEventData.date_time}
+            onChange={(e) => setNewEventData({ ...newEventData, date_time: e.target.value })}
+          />
+          <input
+            type="text"
+            placeholder="Organizer ID"
+            value={newEventData.organizer_id}
+            onChange={(e) => setNewEventData({ ...newEventData, organizer_id: e.target.value })}
+          />
+          <button onClick={handleCreateEvent}>Create Event</button>
+        </div>
+      )}
       <ol>
         {events.map(event => (
           <li key={event.id}>
-            {editingEvent && editingEvent.id === event.id ? (
-              <div>
-                <input
-                  type="text"
-                  value={updatedEvent.title}
-                  onChange={(e) => setUpdatedEvent({ ...updatedEvent, title: e.target.value })}
-                />
-                <input
-                  type="datetime-local"
-                  value={updatedEvent.date_time}
-                  onChange={(e) => setUpdatedEvent({ ...updatedEvent, date_time: e.target.value })}
-                />
-                <button onClick={() => handleUpdateSubmit(event.id)}>Save</button>
-                <button onClick={() => setEditingEvent(null)}>Cancel</button>
-              </div>
+            {isAdmin ? (
+              editingEvent && editingEvent.id === event.id ? (
+                <div>
+                  <input
+                    type="text"
+                    value={updatedEvent.title}
+                    onChange={(e) => setUpdatedEvent({ ...updatedEvent, title: e.target.value })}
+                  />
+                  <input
+                    type="datetime-local"
+                    value={updatedEvent.date_time}
+                    onChange={(e) => setUpdatedEvent({ ...updatedEvent, date_time: e.target.value })}
+                  />
+                  <button onClick={() => handleUpdateSubmit(event.id)}>Save</button>
+                  <button onClick={() => setEditingEvent(null)}>Cancel</button>
+                </div>
+              ) : (
+                <div>
+                  {event.title} - {new Date(event.date_time).toLocaleString()}
+                  <button onClick={() => handleUpdate(event)}>Edit</button>
+                  <button onClick={() => handleDelete(event.id)}>Delete</button>
+                </div>
+              )
             ) : (
               <div>
                 {event.title} - {new Date(event.date_time).toLocaleString()}
-                <button onClick={() => handleUpdate(event)}>Edit</button>
-                <button onClick={() => handleDelete(event.id)}>Delete</button>
               </div>
             )}
           </li>
