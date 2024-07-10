@@ -1,0 +1,28 @@
+# DropTable.py
+
+from app import app, db
+from sqlalchemy import text
+
+# Define the function to drop the table
+def drop_user_roles_table():
+    with app.app_context():
+        # Define the SQL query to drop the table
+        sql_query = """
+            DROP TABLE IF EXISTS user_roles;
+        """
+        
+        # Convert the SQL query into a SQLAlchemy text object
+        sql_statement = text(sql_query)
+
+        # Execute the SQL query
+        try:
+            db.session.execute(sql_statement)
+            db.session.commit()
+            print("user_roles table dropped successfully.")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error dropping user_roles table: {str(e)}")
+
+# Call the function to drop the table
+if __name__ == "__main__":
+    drop_user_roles_table()
